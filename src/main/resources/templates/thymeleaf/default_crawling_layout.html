@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product List</title>
+
+    <!-- Google Fonts for styling -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS for styling -->
+    <style>
+        .input-container {
+            display: flex;
+            justify-content: center; /* 요소들 간의 간격을 동일하게 */
+            align-items: center; /* 요소들을 세로로 중앙 정렬 */
+            width: 100%;
+            padding: 20px;
+
+        }
+        .row {
+            display: flex;
+            align-items: center;
+        }
+        .row label {
+            margin-right: 10px;
+            margin-left: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+        .row select, .row input, .row button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            margin-right: 10px;
+            width: 150px;
+        }
+
+        .row input {
+            width: 200px !important;
+        }
+        .row select:focus, .row input:focus, .row button:focus {
+            outline: none;
+            border-color: #007BFF;
+        }
+
+        .row button {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .row button:hover {
+            background-color: #45a049;
+        }
+
+        .row button:active {
+            background-color: #388e3c;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 5px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        /* 카테고리 탭 스타일 */
+        .category-tabs {
+            display: flex;
+            overflow-x: auto; /* 좌우 스크롤 */
+            padding: 10px 0;
+            margin-bottom: 20px;
+            gap: 10px;
+            white-space: nowrap; /* 탭을 한 줄로 늘어지게 설정 */
+            justify-content: center;
+        }
+
+        .category-tabs button {
+            padding: 12px 25px;
+            background-color: transparent;
+            color: #4CAF50;
+            text-decoration: none;
+            border-radius: 30px;
+            border: 2px solid #4CAF50;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .category-tabs button:hover {
+            background-color: #4CAF50;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 100px;
+        }
+
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1.1em;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        table tr:hover {
+            background-color: #ddd;
+        }
+
+        .product-price {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .product-upload {
+            color: #333;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+<!-- Header Section -->
+<header>
+    <h1>Crawling Data</h1>
+</header>
+
+<!-- Category Tabs (상단 카테고리 선택) -->
+<form class="input-container" action="/crawling-data" method="get">
+    <div class="row">
+        <label for="category">탐색:</label>
+        <select id="category" name="key">
+            <option th:each="category : ${categories}"
+                    th:value="${category.key}"
+                    th:text="${category.displayName}">Category</option>
+        </select>
+    </div>
+
+    <div class="row">
+        <label for="input-box">키워드:</label>
+        <input type="text" id="input-box" name="keyword" placeholder="키워드를 입력해주세요">
+    </div>
+
+    <div class="row">
+        <button type="submit">Submit</button>
+    </div>
+
+</form>
+
+<!-- Container for product list -->
+<div class="container">
+    <p>아이템 개수: <span th:text="${size}"></span></p>
+    <table>
+        <thead>
+        <tr>
+            <th>상품명</th>
+            <th>주소</th>
+            <th>가격</th>
+            <th>등록 시간</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Iterate through the filtered products list -->
+        <tr th:each="item : ${items}">
+            <td th:text="${item.title}">Title</td>
+            <td class="product-price">
+                <a th:href="@{${item.url}}" target="_blank">링크</a>
+            </td>
+            <td class="product-price" th:text="${item.price}" >price</td>
+            <td class="product-upload" th:text="${item.uploadTime}">uploadTime</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Footer Section -->
+<footer>
+    <p>&copy; 2024 My Company. All Rights Reserved.</p>
+</footer>
+</body>
+</html>

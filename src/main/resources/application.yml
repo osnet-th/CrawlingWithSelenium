@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: PriceIndex
+  thymeleaf:
+    prefix: classpath:templates/thymeleaf/
+    suffix: .html
+    cache: false
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: false
+  datasource:
+    url: jdbc:mariadb://localhost:3306/priceindex
+    username: root
+    password: P@ssw0rd
+    driver-class-name:
+    jpa:
+      database-platform: org.hibernate.dialect.MariaDB103Dialect
+      hibernate:
+        ddl-auto: none
+      show-sql: true
+      properties:
+        hibernate:
+          format_sql: true
+    datasource:
+      hikari:
+        maximum-pool-size: 10
+        min-idle: 5
+        connection-timeout: 30000
+
+
+
+
+selenium:
+  driver-path:
