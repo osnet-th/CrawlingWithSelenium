@@ -46,6 +46,7 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
     public List<UsedItem> requestCrawlingData(String keyword) {
         log.info("크롤링을 진행합니다. 요청 URL (https://web.joongna.com) ");
         try {
+            setUpKeyword(keyword);
             return crawlingProcess();
         } catch (Exception e) {
             return error(e);
@@ -61,7 +62,7 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
     }
 
     private List<UsedItem> crawlingProcess() throws IOException {
-        setUpCrawlingPageAndKeyWord(keyword);
+        setUpCrawlingPage();
         searchKeywordAndMovePage();
         return getTotalPageCrawling();
     }
@@ -78,10 +79,9 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
         return items;
     }
 
-    private void setUpCrawlingPageAndKeyWord(String keyword) throws IOException {
+    private void setUpCrawlingPage() throws IOException {
         initDriver();
         connectionWebUrl();
-        setUpKeyword(keyword);
     }
 
 
