@@ -17,6 +17,10 @@ import java.time.Duration;
 @Component
 @Slf4j
 public class SeleniumDriverConfig {
+    public WebDriver getChromeDriver() throws IOException {
+        setProperty();
+        return createDriver();
+    }
 
     private WebDriver createDriver() {
         WebDriver driver = new ChromeDriver(getChromeOptions());
@@ -40,10 +44,6 @@ public class SeleniumDriverConfig {
         chromeOptions.addArguments("headless");
 
         return chromeOptions;
-    }
-    public WebDriver getChromeDriver() throws IOException {
-        setProperty();
-        return createDriver();
     }
 
     // 모든 창을 닫고 WebDriver 세션을 종료합니다.

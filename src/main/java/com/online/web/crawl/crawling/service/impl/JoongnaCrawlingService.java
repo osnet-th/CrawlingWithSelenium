@@ -1,24 +1,24 @@
 package com.online.web.crawl.crawling.service.impl;
 
 
+import com.online.web.crawl.crawling.JoongnaCSSValueContainer;
 import com.online.web.crawl.crawling.config.SeleniumDriverConfig;
 import com.online.web.crawl.crawling.dto.EnabledCategory;
 import com.online.web.crawl.crawling.dto.UsedItem;
 import com.online.web.crawl.crawling.service.CrawlingService;
-import com.online.web.crawl.crawling.JoongnaCSSValueContainer;
 import com.online.web.crawl.schedule.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,9 +32,8 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
     private final String jongnaUrl = "https://web.joongna.com";
     private final AtomicInteger pageCount = new AtomicInteger(1);
     private final JoongnaCSSValueContainer cssValueContainer = new JoongnaCSSValueContainer();
-    private final int MAX_PAGE = 20;
-
-
+    private final Map<Integer, List<UsedItem>> pageItems = new HashMap<>();
+    private final int MAX_PAGE = 0;
 
     @Override
     public EnabledCategory getEnableCrawlingCategory() {
@@ -47,68 +46,46 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
         log.info("크롤링을 진행합니다. 요청 URL (https://web.joongna.com) ");
         try {
             setUpKeyword(keyword);
-            return crawlingProcess();
+            crawlingProcess();
         } catch (Exception e) {
             return error(e);
         } finally {
             pageCount.set(1);
             driver.quit();
+            return pageItems.values().stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList());
         }
     }
 
+    private void setUpKeyword(String keyword) {
+        this.keyword = keyword;
+    }
+
     private List<UsedItem> error(Exception e) {
+
         log.error("크롤링 진행 중 에러가 발생했습니다. {}", e.getMessage());
         return new ArrayList<>();
     }
 
-    private List<UsedItem> crawlingProcess() throws IOException {
+    private void crawlingProcess() throws IOException {
         setUpCrawlingPage();
         searchKeywordAndMovePage();
-        return getTotalPageCrawling();
+        getTotalPageCrawling();
     }
-
-
-
-    private List<UsedItem> getTotalPageCrawling() {
-        List<UsedItem> items = new ArrayList<>();
-        try {
-             items = totalPageCrawlingProcess();
-        } catch(NoSuchElementException e) {
-            log.info("다음 페이지가 없습니다. 크롤링을 종료합니다.");
-        }
-        return items;
-    }
-
     private void setUpCrawlingPage() throws IOException {
         initDriver();
         connectionWebUrl();
-    }
-
-
-    private void setUpKeyword(String keyword) {
-        this.keyword = keyword;
     }
 
     private void initDriver() throws IOException {
         driver = driverConfig.getChromeDriver();
     }
 
-
-    private List<UsedItem> createCrawlingData(List<WebElement> elements) {
-        if (isEmptyElements(elements)) return new ArrayList<>();
-        return consolidateCrawlingData(elements);
-    }
-
-
-    private boolean isEmptyElements(List<WebElement> elements) {
-        return Objects.isNull(elements) || elements.isEmpty();
-    }
-
     private void connectionWebUrl() {
         // Google 검색 페이지로 이동
         driver.get(jongnaUrl);
     }
-
 
     private void searchKeywordAndMovePage() {
         // 검색 입력 상자 찾기
@@ -119,14 +96,74 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
         searchBox.submit();
     }
 
-    private void createWebDriverWait() {
-        waitDrvier = new WebDriverWait(driver, Duration.ofSeconds(10));
+    private void getTotalPageCrawling() {
+
+        do {
+            try {
+            pageItems.put(pageCount.get(), crawling());
+            incrementPageCount();
+            WebElement nextPageAnchor = findAndMakeNextPageAnchorTag();
+            nextPageClick(nextPageAnchor);
+            } catch(NoSuchElementException e) {
+                log.info("다음 페이지가 없습니다. 크롤링을 종료합니다.");
+                break;
+            } catch(StaleElementReferenceException e) {
+                log.info("실행중 에러 - 재시도 합니다. 현재 페이지 {}", pageCount);
+            }
+        } while (isWhileCondition());
+
     }
 
+    private boolean isWhileCondition() {
+        return isMaxPageZero() ? true : isPageCountEqualMaxPage();
+    }
+
+    private boolean isPageCountEqualMaxPage() {
+        return pageCount.get() <= MAX_PAGE;
+    }
+
+    private boolean isMaxPageZero() {
+        return MAX_PAGE == 0;
+    }
+
+    private List<UsedItem> crawling() {
+        createWebDriverWait();
+        List<WebElement> elements = crawlingAndWaitForLoadingComplete();
+        return createCrawlingData(elements);
+    }
+
+    private List<WebElement> crawlingAndWaitForLoadingComplete() {
+        return waitDrvier.until(d -> waitForLoadingElement(d.findElements(By.xpath(cssValueContainer.getItemPostCssWithReplaceKeyword(keyword)))));
+    }
+
+    private List<WebElement> waitForLoadingElement(List<WebElement> itemPostElements) {
+        try {
+            // 모든 요소가 화면에 표시될 때까지 기다립니다.
+            return (!itemPostElements.isEmpty() && itemPostElements.stream().allMatch(WebElement::isDisplayed)) ? itemPostElements : null;
+        } catch (StaleElementReferenceException e) {
+            return crawlingAndWaitForLoadingComplete();
+        }
+    }
+
+    private void nextPageClick(WebElement nextPageAnchor) {
+        log.info(">>> 다음 페이지 크롤링 - {} 페이지", nextPageAnchor.getText());
+        nextPageAnchor.click(); // 화면이 작은 경우 Click 이 안되는 경우가 있음
+    }
+
+
+    private List<UsedItem> createCrawlingData(List<WebElement> elements) {
+        if (isEmptyElements(elements))
+            return new ArrayList<>();
+        return consolidateCrawlingData(elements);
+    }
+
+
+    private boolean isEmptyElements(List<WebElement> elements) {
+        return Objects.isNull(elements) || elements.isEmpty();
+    }
     private List<UsedItem> consolidateCrawlingData(List<WebElement> elements) {
         return elements.stream().map(this::createJoongnaItemList).filter(Objects::nonNull).toList();
     }
-
 
     private UsedItem createJoongnaItemList(WebElement element) {
         try {
@@ -143,13 +180,13 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
         return new UsedItem(title, url, priceAndUploadTime[0], priceAndUploadTime[1]);
     }
 
+    private String getItemLink(WebElement element) {
+        return element.getAttribute("href");
+    }
+
     private String getItemTitle(WebElement element) {
         WebElement contentTag = element.findElement(By.tagName("img"));
         return contentTag.getAttribute("alt");
-    }
-
-    private String getItemLink(WebElement element) {
-        return element.getAttribute("href");
     }
 
     private String[] getItemPriceAndUploadTime(WebElement element) {
@@ -174,20 +211,6 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
             throw new NoSuchElementException("광고 게시글은 제외합니다.");
         }
     }
-    private List<UsedItem> totalPageCrawlingProcess() {
-        // 처음 크롤링은 그냥 진행
-        List<UsedItem> items = new ArrayList<>(crawling());
-        do {
-            incrementPageCount();
-            WebElement nextPageAnchor = findAndMakeNextPageAnchorTag();
-            items.addAll(nextPageClickAndCrawling(nextPageAnchor));
-        } while (isPageCountEqualMaxPage());
-        return items;
-    }
-
-    private boolean isPageCountEqualMaxPage() {
-        return pageCount.get() != MAX_PAGE;
-    }
 
     private WebElement findAndMakeNextPageAnchorTag() {
         WebElement currentAnchorTagElement = findCurrentPageAnchorTag(findCurrentPageContainer());
@@ -202,19 +225,13 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
     private void incrementPageCount() {
         pageCount.incrementAndGet();
     }
-
-    private List<UsedItem> nextPageClickAndCrawling(WebElement nextPageAnchor) {
-        log.info(">>> 다음 페이지 크롤링 - {} 페이지", nextPageAnchor.getText());
-        nextPageAnchor.click();
-        return crawling();
+    private void decrementPageCount() {
+        pageCount.decrementAndGet();
     }
 
-    private List<UsedItem> crawling() {
-        createWebDriverWait();
-        List<WebElement> elements = crawlingAndWaitForLoadingComplete();
-        return createCrawlingData(elements);
+    private void createWebDriverWait() {
+        waitDrvier = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
-
 
     // .w-10.h-10.rounded-md.shrink-0 클래스가 붙은 요소는 페이징 요소를 의미함
     private WebElement findCurrentPageContainer() {
@@ -233,18 +250,7 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
     }
 
     // 요소 로딩 완료까지 대기
-    private List<WebElement> crawlingAndWaitForLoadingComplete() {
-        return waitDrvier.until(d -> waitForLoadingElement(d.findElements(By.xpath(cssValueContainer.getItemPostCssWithReplaceKeyword(keyword)))));
-    }
 
-    private List<WebElement> waitForLoadingElement(List<WebElement> itemPostElements) {
-        try {
-            // 모든 요소가 화면에 표시될 때까지 기다립니다.
-            return (!itemPostElements.isEmpty() && itemPostElements.stream().allMatch(WebElement::isDisplayed)) ? itemPostElements : null;
-        } catch (StaleElementReferenceException e) {
-            return crawlingAndWaitForLoadingComplete();
-        }
-    }
 
     @Override
     public Runnable scheduleTask() {

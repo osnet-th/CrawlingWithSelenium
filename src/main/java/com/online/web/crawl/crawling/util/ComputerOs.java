@@ -30,7 +30,7 @@ public class ComputerOs {
     }
 
     private String getMacOsChromeDriverPath() {
-        return "driver/chromedriver.dmg";
+        return "driver/chromedriver";
     }
     private String getWindowsOsChromeDriverPath() {
         return "driver/chromedriver.exe";

@@ -11,12 +11,12 @@ spring:
     restart:
       enabled: false
   datasource:
-    url: jdbc:mariadb://localhost:3306/priceindex
+    url: jdbc:mysql://localhost:3306/priceindex
     username: root
-    password: P@ssw0rd
+    password: dlxogud963
     driver-class-name:
     jpa:
-      database-platform: org.hibernate.dialect.MariaDB103Dialect
+      database-platform: org.hibernate.dialect.MySQL9Dialect
       hibernate:
         ddl-auto: none
       show-sql: true
