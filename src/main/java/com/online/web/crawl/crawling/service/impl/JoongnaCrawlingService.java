@@ -211,7 +211,6 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
             throw new NoSuchElementException("광고 게시글은 제외합니다.");
         }
     }
-
     private WebElement findAndMakeNextPageAnchorTag() {
         WebElement currentAnchorTagElement = findCurrentPageAnchorTag(findCurrentPageContainer());
         String nextPageAnchorTag = replaceNextPageHref(currentAnchorTagElement.getAttribute("href")); // null 아님
