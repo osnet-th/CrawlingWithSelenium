@@ -214,7 +214,7 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
 
     private WebElement findAndMakeNextPageAnchorTag() {
         WebElement currentAnchorTagElement = findCurrentPageAnchorTag(findCurrentPageContainer());
-        String nextPageAnchorTag = replaceNextPageHref(currentAnchorTagElement.getAttribute("href"));
+        String nextPageAnchorTag = replaceNextPageHref(currentAnchorTagElement.getAttribute("href")); // null 아님
         return findNextPageAnchor(nextPageAnchorTag);
     }
 
