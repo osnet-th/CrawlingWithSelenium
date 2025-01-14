@@ -225,10 +225,6 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
     private void incrementPageCount() {
         pageCount.incrementAndGet();
     }
-    private void decrementPageCount() {
-        pageCount.decrementAndGet();
-    }
-
     private void createWebDriverWait() {
         waitDrvier = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
