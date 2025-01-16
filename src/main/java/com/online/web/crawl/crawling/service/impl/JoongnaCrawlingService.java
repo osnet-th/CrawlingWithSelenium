@@ -244,9 +244,6 @@ public class JoongnaCrawlingService implements CrawlingService, ScheduleService 
         return href.replaceAll(regex, "=" + pageCount.get()).replace(jongnaUrl,"");
     }
 
-    // 요소 로딩 완료까지 대기
-
-
     @Override
     public Runnable scheduleTask() {
         return () -> {
